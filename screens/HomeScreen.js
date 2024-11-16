@@ -15,7 +15,7 @@ const HomeScreen = () => {
     const longitude = '-73.985428'; // Longitude de exemplo (Nova York)
 
     // Endpoint da Foursquare Places API
-    const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=1`;
+    const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=10`;
 
     // Requisição para buscar lugares
     fetch(url, {
@@ -24,17 +24,14 @@ const HomeScreen = () => {
         'Authorization': API_KEY, // Certifique-se de que a chave está correta
       }
     })
-      .then(response => {
-        console.log('Status da resposta:', response.status);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log('Dados da resposta:', data);
-        const place = data.results[0];
-        setPlaceData(place);
+        // Pega um lugar aleatório da lista de lugares
+        const randomPlace = data.results[Math.floor(Math.random() * data.results.length)];
+        setPlaceData(randomPlace);
 
         // Buscar foto do lugar (exemplo de foto)
-        const photoUrl = `https://api.foursquare.com/v3/places/${place.fsq_id}/photos?limit=1`;
+        const photoUrl = `https://api.foursquare.com/v3/places/${randomPlace.fsq_id}/photos?limit=1`;
         return fetch(photoUrl, {
           method: 'GET',
           headers: {
@@ -59,7 +56,7 @@ const HomeScreen = () => {
         console.error('Erro ao fazer a requisição:', error);
         setPlacePhoto('https://via.placeholder.com/600x400?text=Imagem+indisponível'); // Fallback
       });
-  }, []);
+  }, []); // O array de dependências vazio garante que o efeito seja executado apenas uma vez
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,15 +70,24 @@ const HomeScreen = () => {
 
       {/* Conteúdo rolável entre as barras */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {placePhoto ? (
-          <Image source={{ uri: placePhoto }} style={styles.placeImage} />
-        ) : (
-          <Text style={styles.contentText}>Carregando imagem do lugar...</Text>
-        )}
+        {/* Foto com nome do lugar */}
+        <View style={styles.imageContainer}>
+          {placePhoto ? (
+            <Image source={{ uri: placePhoto }} style={styles.placeImage} />
+          ) : (
+            <Text style={styles.contentText}>Carregando imagem do lugar...</Text>
+          )}
 
-        {placeData && (
-          <Text style={styles.contentText}>Lugar: {placeData.name}</Text>
-        )}
+          {placeData && (
+            <View style={styles.overlayTextContainer}>
+              <Text style={styles.placeName}>{placeData.name}</Text>
+              <TouchableOpacity style={styles.button}>
+                <Text style={styles.buttonText}>Descubra agora</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
         {[...Array(30)].map((_, index) => (
           <Text key={index} style={styles.contentText}>Conteúdo rolável número {index + 1}</Text>
         ))}
@@ -173,7 +179,38 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     borderRadius: 8,
+  },
+  imageContainer: {
+    position: 'relative',
     marginBottom: 20,
+  },
+  overlayTextContainer: {
+    position: 'absolute',
+    top: '50%', // Centraliza verticalmente
+    left: '45%', // Centraliza horizontalmente
+    transform: [{ translateX: -75 }, { translateY: -50 }], // Ajusta para o centro exato
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeName: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textShadowColor: 'black',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 10,
+  },
+  button: {
+    marginTop: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    backgroundColor: '#FF6347', // Tom de laranja
+    borderRadius: 30, // Borda mais arredondada
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
