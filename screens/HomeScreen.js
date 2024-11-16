@@ -1,112 +1,114 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, FlatList, Alert } from 'react-native';
-import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
+import React from 'react';
+import { View, Text, StyleSheet, SafeAreaView, Platform, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Biblioteca de ícones
 
-const HomeScreen = ({ navigation }) => {
-  const [location, setLocation] = useState(null);
-  const [nearbyPlaces, setNearbyPlaces] = useState([]);
-  const [errorMsg, setErrorMsg] = useState(null);
-
-  // Função para obter a localização do usuário
-  const getLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      setErrorMsg('Permissão para acessar a localização foi negada.');
-      return;
-    }
-
-    const currentLocation = await Location.getCurrentPositionAsync({});
-    setLocation({
-      latitude: currentLocation.coords.latitude,
-      longitude: currentLocation.coords.longitude,
-    });
-
-    fetchNearbyPlaces(currentLocation.coords.latitude, currentLocation.coords.longitude);
-  };
-
-  // Simulação de Pontos Turísticos Próximos
-  const fetchNearbyPlaces = (latitude, longitude) => {
-    const places = [
-      { id: 1, name: 'Museu de Arte', latitude: latitude + 0.01, longitude: longitude + 0.01 },
-      { id: 2, name: 'Parque Central', latitude: latitude - 0.01, longitude: longitude - 0.01 },
-      { id: 3, name: 'Restaurante Gourmet', latitude: latitude + 0.02, longitude: longitude - 0.01 },
-    ];
-    setNearbyPlaces(places);
-  };
-
-  useEffect(() => {
-    getLocation();
-  }, []);
-
+const HomeScreen = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Bem-vindo ao "Descubra Sua Cidade"!</Text>
-      <Button title="Logout" onPress={() => navigation.replace('Login')} />
-      {location ? (
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-          >
-            {/* Marcador do Usuário */}
-            <Marker
-              coordinate={location}
-              title="Você está aqui"
-              pinColor="blue"
-            />
-            {/* Marcadores de Pontos Turísticos */}
-            {nearbyPlaces.map((place) => (
-              <Marker
-                key={place.id}
-                coordinate={{ latitude: place.latitude, longitude: place.longitude }}
-                title={place.name}
-              />
-            ))}
-          </MapView>
+    <SafeAreaView style={styles.container}>
+      {/* Navbar Superior */}
+      <View style={styles.navbarTop}>
+        {/* Nome "VisitGo" clicável */}
+        <TouchableOpacity onPress={() => alert('VisitGo clicado!')}>
+          <Text style={styles.navbarTextLeft}>VisitGo</Text>
+        </TouchableOpacity>
+        <Ionicons name="heart" size={30} color="red" style={styles.iconRight} />
+      </View>
 
-          {/* Lista de Pontos Turísticos */}
-          <FlatList
-            data={nearbyPlaces}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => <Text style={styles.place}>{item.name}</Text>}
-          />
-        </View>
-      ) : (
-        <Text>{errorMsg || 'Obtendo localização...'}</Text>
-      )}
-    </View>
+      {/* Conteúdo rolável entre as barras */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.contentText}>Texto longo aqui para rolar o conteúdo...</Text>
+        {/* Adicione mais texto ou componentes aqui */}
+        {[...Array(30)].map((_, index) => (
+          <Text key={index} style={styles.contentText}>Conteúdo rolável número {index + 1}</Text>
+        ))}
+      </ScrollView>
+
+      {/* Navbar Inferior com ícones e texto */}
+      <View style={styles.navbarBottom}>
+        <TouchableOpacity style={styles.navbarItem}>
+          <Ionicons name="home" size={24} color="white" />
+          <Text style={styles.navbarItemText}>Início</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navbarItem}>
+          <Ionicons name="map" size={24} color="white" />
+          <Text style={styles.navbarItemText}>Meus Spots</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navbarItem}>
+          <Ionicons name="bulb" size={24} color="white" />
+          <Text style={styles.navbarItemText}>Suas Dicas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navbarItem}>
+          <Ionicons name="locate" size={24} color="white" />
+          <Text style={styles.navbarItemText}>Dicas Locais</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  navbarTop: {
+    height: 80, // Altura da navbar superior
+    backgroundColor: 'white',
+    flexDirection: 'row', // Alinha os itens horizontalmente
+    justifyContent: 'space-between', // Espaço entre os elementos
+    alignItems: 'center', // Alinhamento vertical central
+    paddingHorizontal: 16, // Espaçamento horizontal
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // Ajuste para Android
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1, // Garante que a navbar fique sobre o conteúdo
+    borderBottomWidth: 1, // Borda sutil
+    borderBottomColor: '#ccc', // Cor da borda
+  },
+  navbarBottom: {
+    height: 65, // Altura da navbar inferior
+    backgroundColor: 'black',
+    flexDirection: 'row', // Alinha os itens horizontalmente
+    justifyContent: 'space-around', // Espaço igual entre os itens
     alignItems: 'center',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1, // Garante que a navbar fique sobre o conteúdo
   },
-  title: {
-    fontSize: 20,
+  navbarItem: {
+    alignItems: 'center', // Alinha ícone e texto no centro
+  },
+  navbarItemText: {
+    color: 'white',
+    fontSize: 12, // Tamanho do texto
+    marginTop: 5, // Espaço entre o ícone e o texto
+  },
+  navbarText: {
+    color: 'white',
+    fontSize: 20, // Tamanho do texto
     fontWeight: 'bold',
+  },
+  navbarTextLeft: {
+    color: 'black', // Cor do texto
+    fontSize: 25, // Tamanho maior para o texto
+    fontWeight: 'bold', // Peso do texto
+  },
+  iconRight: {
+    marginRight: 7, // Espaço à direita
+  },
+  scrollContent: {
+    paddingTop: 100, // Espaço para a navbar superior
+    paddingBottom: 100, // Espaço para a navbar inferior
+    paddingHorizontal: 16,
+  },
+  contentText: {
+    fontSize: 18,
+    color: '#333',
     marginBottom: 20,
-  },
-  mapContainer: {
-    flex: 1,
-    width: '100%',
-  },
-  map: {
-    flex: 1,
-  },
-  place: {
-    padding: 10,
-    fontSize: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
 });
 
