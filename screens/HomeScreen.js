@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location'; // Importando o módulo de localização
 import LugaresParaConhecer from '../components/HorizontalScroll';
 import ListaSugestoesComAPI from '../components/ListaSugestoesComAPI';
-
+import { useNavigation } from '@react-navigation/native';
 const HomeScreen = () => {
   const [places, setPlaces] = useState([]); // Lista de lugares
   const [allPlaces, setAllPlaces] = useState([]); // Lista de todos os lugares
@@ -92,6 +92,10 @@ const HomeScreen = () => {
   const handleViewAll = () => {
     setPlaces(allPlaces);
   };
+  const navigation = useNavigation();
+  
+  const BottomNavbar = () => {
+  const navigation = useNavigation();}
 
   return (
     <SafeAreaView style={styles.container}>
@@ -151,23 +155,27 @@ const HomeScreen = () => {
       </ScrollView>
 
       <View style={styles.navbarBottom}>
-        <TouchableOpacity style={styles.navbarItem}>
-          <Ionicons name="home" size={24} color="white" />
-          <Text style={styles.navbarItemText}>Início</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navbarItem}>
-          <Ionicons name="map" size={24} color="white" />
-          <Text style={styles.navbarItemText}>Meus Spots</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navbarItem}>
-          <Ionicons name="bulb" size={24} color="white" />
-          <Text style={styles.navbarItemText}>Suas Dicas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navbarItem}>
-          <Ionicons name="locate" size={24} color="white" />
-          <Text style={styles.navbarItemText}>Dicas Locais</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.navbarItem} onPress={() => navigation.navigate('Home')}>
+        <Ionicons name="home" size={24} color="white" />
+        <Text style={styles.navbarItemText}>Início</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.navbarItem} onPress={() => navigation.navigate('MeusSpots')}>
+        <Ionicons name="map" size={24} color="white" />
+        <Text style={styles.navbarItemText}>Meus Spots</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.navbarItem} onPress={() => navigation.navigate('SuasDicas')}>
+        <Ionicons name="bulb" size={24} color="white" />
+        <Text style={styles.navbarItemText}>Suas Dicas</Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.navbarItem} 
+        onPress={() => navigation.replace('DicasLocais')}  // Navegação para a tela 'MapasDicas' substituindo a atual
+      >
+        
+        <Ionicons name="locate" size={24} color="white" />
+        <Text style={styles.navbarItemText}>Dicas Locais</Text>
+      </TouchableOpacity>
+    </View>
     </SafeAreaView>
   );
 };
