@@ -1,70 +1,97 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Platform, StatusBar, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location'; // Importando o módulo de localização
 
 const HomeScreen = () => {
   const [places, setPlaces] = useState([]); // Lista de lugares
   const [allPlaces, setAllPlaces] = useState([]); // Lista de todos os lugares
   const [placePhotos, setPlacePhotos] = useState({}); // Fotos de cada lugar
+  const [location, setLocation] = useState(null); // Estado para armazenar a localização do usuário
 
   useEffect(() => {
-    const API_KEY = 'fsq3xXo7ixWrN0ANMJiIYsSecFLzz7mEmkG+kRmkEMBj+Xk=';
-    const latitude = '40.748817'; // Latitude de exemplo (Nova York)
-    const longitude = '-73.985428'; // Longitude de exemplo (Nova York)
-
-    const fetchPlaces = async () => {
+    const fetchLocation = async () => {
       try {
-        // Busca inicial de lugares (limite 3 lugares)
-        const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=4`;
-        const placeResponse = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Authorization': API_KEY,
-          },
-        });
-        const placeData = await placeResponse.json();
-        const placesWithPhotos = placeData.results;
-        
-        // Salva os 3 primeiros lugares
-        setPlaces(placesWithPhotos);
+        // Pedir permissão para acessar a localização
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          alert('Permissão para acessar a localização negada!');
+          return;
+        }
 
-        // Busca todos os lugares para mostrar no "Ver tudo"
-        const allPlacesUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=20`;
-        const allPlaceResponse = await fetch(allPlacesUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': API_KEY,
-          },
-        });
-        const allPlaceData = await allPlaceResponse.json();
-        setAllPlaces(allPlaceData.results); // Salva todos os lugares
+        // Obter a localização do usuário
+        const userLocation = await Location.getCurrentPositionAsync({});
+        setLocation(userLocation.coords); // Salvar a localização
+      } catch (error) {
+        console.error('Erro ao obter a localização:', error);
+      }
+    };
 
-        // Busca fotos para os lugares
-        const photos = {};
-        for (const place of placesWithPhotos) {
-          const photoUrl = `https://api.foursquare.com/v3/places/${place.fsq_id}/photos?limit=1`;
-          const photoResponse = await fetch(photoUrl, {
+    fetchLocation();
+  }, []);
+
+  useEffect(() => {
+    if (location) {
+      const API_KEY = 'fsq3xXo7ixWrN0ANMJiIYsSecFLzz7mEmkG+kRmkEMBj+Xk=';
+
+      const fetchPlaces = async () => {
+        try {
+          const { latitude, longitude } = location;
+
+          // Aumentando o raio de busca para 5000 metros (5 km)
+          const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=5`;
+          const placeResponse = await fetch(url, {
             method: 'GET',
             headers: {
               'Authorization': API_KEY,
             },
           });
-          const photoData = await photoResponse.json();
-          if (photoData && photoData.length > 0) {
-            const photo = photoData[0];
-            photos[place.fsq_id] = `${photo.prefix}600x600${photo.suffix}`; // Salva a foto do lugar
-          } else {
-            photos[place.fsq_id] = 'https://via.placeholder.com/600x400?text=Imagem+indisponível';
-          }
-        }
-        setPlacePhotos(photos); // Atualiza as fotos
-      } catch (error) {
-        console.error('Erro ao fazer a requisição:', error);
-      }
-    };
+          const placeData = await placeResponse.json();
+          const placesWithPhotos = placeData.results;
 
-    fetchPlaces();
-  }, []);
+          // Busca fotos para os lugares
+          const photos = {};
+          const placesWithValidPhotos = [];
+
+          for (const place of placesWithPhotos) {
+            const photoUrl = `https://api.foursquare.com/v3/places/${place.fsq_id}/photos?limit=1`;
+            const photoResponse = await fetch(photoUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': API_KEY,
+              },
+            });
+            const photoData = await photoResponse.json();
+            if (photoData && photoData.length > 0) {
+              const photo = photoData[0];
+              photos[place.fsq_id] = `${photo.prefix}600x600${photo.suffix}`; // Salva a foto do lugar
+              placesWithValidPhotos.push(place); // Adiciona o lugar apenas se tiver foto
+            }
+          }
+
+          // Atualiza os lugares com fotos válidas
+          setPlaces(placesWithValidPhotos);
+          setPlacePhotos(photos); // Atualiza as fotos
+          
+          // Busca todos os lugares para mostrar no "Ver tudo" com um raio maior
+          const allPlacesUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=20`;
+          const allPlaceResponse = await fetch(allPlacesUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': API_KEY,
+            },
+          });
+          const allPlaceData = await allPlaceResponse.json();
+          setAllPlaces(allPlaceData.results); // Salva todos os lugares
+
+        } catch (error) {
+          console.error('Erro ao fazer a requisição:', error);
+        }
+      };
+
+      fetchPlaces();
+    }
+  }, [location]); // A dependência é a localização
 
   const handleViewAll = () => {
     // Ao clicar em "Ver tudo", mostramos todos os lugares
@@ -86,7 +113,7 @@ const HomeScreen = () => {
           <View style={styles.placeCard}>
             <Image source={{ uri: placePhotos[places[0].fsq_id] }} style={styles.placeImage} />
             <View style={styles.overlayTextContainer}>
-              <Text style={styles.placeName}>{places[0].name}</Text>
+              <Text style={styles.placeName1}>{places[0].name}</Text>
               <TouchableOpacity style={styles.button}>
                 <Text style={styles.buttonText}>Descubra agora</Text>
               </TouchableOpacity>
@@ -109,6 +136,17 @@ const HomeScreen = () => {
               {placePhotos[place.fsq_id] && (
                 <Image source={{ uri: placePhotos[place.fsq_id] }} style={styles.placeImage} />
               )}
+
+              {/* Nome do restaurante */}
+              <Text style={styles.placeName}>{place.name}</Text>
+
+              {/* Localização */}
+              {place.location && place.location.address ? (
+                <View style={styles.locationContainer}>
+                  <Ionicons name="location-sharp" size={16} color="gray" />
+                  <Text style={styles.locationText}>{place.location.address}</Text>
+                </View>
+              ) : null}
             </View>
           ))}
         </View>
@@ -220,13 +258,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   placeName: {
-    fontSize: 24,
+    fontSize: 14,
+    color: 'black', // Nome do restaurante em preto
     fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 5,
+    marginTop: 8, // Adiciona um espaço entre a imagem e o nome
   },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  locationText: {
+    color: 'gray', // Localização em cinza
+    marginLeft: 5, // Espaço entre o ícone e o texto
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '',
+  },
+  viewAllText: {
+    fontSize: 16,
+    color: '#007bff',
+  },
+  imageContainer: {
+    marginBottom: 20,
+  },
+
   button: {
     marginTop: 10,
     paddingVertical: 12,
@@ -240,24 +302,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center', // Para centralizar o texto
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8, // Reduzimos a margem inferior para aproximar o conteúdo abaixo
-    marginTop: 4, // Ajuste para mover para cima
-  },
-  sectionTitle: {
-    fontSize: 17,
+  placeName1: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#666', // Cor cinza
-  },
-  viewAllText: {
-    color: '#666',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  imageContainer: {
-    marginTop: 20,
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5,
   },
 });
 
