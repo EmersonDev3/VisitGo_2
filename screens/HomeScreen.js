@@ -21,42 +21,37 @@ const HomeScreen = () => {
     fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': API_KEY, // Certifique-se de que a chave está correta
-      }
+        'Authorization': API_KEY,
+      },
     })
-      .then(response => response.json())
-      .then(data => {
-        // Pega um lugar aleatório da lista de lugares
+      .then((response) => response.json())
+      .then((data) => {
         const randomPlace = data.results[Math.floor(Math.random() * data.results.length)];
         setPlaceData(randomPlace);
 
-        // Buscar foto do lugar (exemplo de foto)
         const photoUrl = `https://api.foursquare.com/v3/places/${randomPlace.fsq_id}/photos?limit=1`;
         return fetch(photoUrl, {
           method: 'GET',
           headers: {
-            'Authorization': API_KEY, // Certifique-se de que a chave está correta
-          }
+            'Authorization': API_KEY,
+          },
         });
       })
-      .then(photoResponse => photoResponse.json())
-      .then(photoData => {
+      .then((photoResponse) => photoResponse.json())
+      .then((photoData) => {
         if (photoData && photoData.length > 0) {
           const photo = photoData[0];
-          // Corrigir a URL da foto: apenas use o prefixo e sufixo
           const photoUrl = `${photo.prefix}600x600${photo.suffix}`;
-          console.log('URL da foto:', photoUrl); // Verifique a URL gerada
-          setPlacePhoto(photoUrl); // A URL da foto foi configurada corretamente
+          setPlacePhoto(photoUrl);
         } else {
-          // Se não houver foto, usar uma imagem de fallback
           setPlacePhoto('https://via.placeholder.com/600x400?text=Imagem+indisponível');
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Erro ao fazer a requisição:', error);
-        setPlacePhoto('https://via.placeholder.com/600x400?text=Imagem+indisponível'); // Fallback
+        setPlacePhoto('https://via.placeholder.com/600x400?text=Imagem+indisponível');
       });
-  }, []); // O array de dependências vazio garante que o efeito seja executado apenas uma vez
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -89,7 +84,9 @@ const HomeScreen = () => {
         </View>
 
         {[...Array(30)].map((_, index) => (
-          <Text key={index} style={styles.contentText}>Conteúdo rolável número {index + 1}</Text>
+          <Text key={index} style={styles.contentText}>
+            Conteúdo rolável número {index + 1}
+          </Text>
         ))}
       </ScrollView>
 
@@ -173,7 +170,7 @@ const styles = StyleSheet.create({
   contentText: {
     fontSize: 18,
     color: '#333',
-    marginBottom: 20,
+    marginBottom:20,
   },
   placeImage: {
     width: '100%',
@@ -186,9 +183,10 @@ const styles = StyleSheet.create({
   },
   overlayTextContainer: {
     position: 'absolute',
-    top: '50%', // Centraliza verticalmente
-    left: '45%', // Centraliza horizontalmente
-    transform: [{ translateX: -75 }, { translateY: -50 }], // Ajusta para o centro exato
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -204,8 +202,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,
-    backgroundColor: '#FF6347', // Tom de laranja
-    borderRadius: 30, // Borda mais arredondada
+    backgroundColor: '#FF6347',
+    borderRadius: 30,
   },
   buttonText: {
     color: 'white',
