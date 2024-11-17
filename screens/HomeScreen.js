@@ -39,7 +39,7 @@ const HomeScreen = () => {
           const { latitude, longitude } = location;
 
           // Aumentando o raio de busca para 5000 metros (5 km)
-          const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=5`;
+          const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=4`;
           const placeResponse = await fetch(url, {
             method: 'GET',
             headers: {
