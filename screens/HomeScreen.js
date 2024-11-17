@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Platform, StatusBar, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location'; // Importando o módulo de localização
+import * as Location from 'expo-location'; 
 import LugaresParaConhecer from '../components/HorizontalScroll';
 import ListaSugestoesComAPI from '../components/ListaSugestoesComAPI';
 import { useNavigation } from '@react-navigation/native';
+
 const HomeScreen = () => {
-  const [places, setPlaces] = useState([]); // Lista de lugares
-  const [allPlaces, setAllPlaces] = useState([]); // Lista de todos os lugares
-  const [placePhotos, setPlacePhotos] = useState({}); // Fotos de cada lugar
-  const [location, setLocation] = useState(null); // Estado para armazenar a localização do usuário
+  const [places, setPlaces] = useState([]);
+  const [allPlaces, setAllPlaces] = useState([]);
+  const [placePhotos, setPlacePhotos] = useState({});
+  const [location, setLocation] = useState(null);
 
   useEffect(() => {
     const fetchLocation = async () => {
@@ -38,48 +39,39 @@ const HomeScreen = () => {
         try {
           const { latitude, longitude } = location;
           
-          const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=4`;
-          const placeResponse = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Authorization': API_KEY,
-            },
-          });
+          const placeUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=4`;
+          const allPlacesUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=20`;
+
+          const [placeResponse, allPlaceResponse] = await Promise.all([
+            fetch(placeUrl, { method: 'GET', headers: { 'Authorization': API_KEY } }),
+            fetch(allPlacesUrl, { method: 'GET', headers: { 'Authorization': API_KEY } })
+          ]);
+
           const placeData = await placeResponse.json();
+          const allPlaceData = await allPlaceResponse.json();
+          
           const placesWithPhotos = placeData.results;
-
           const photos = {};
-          const placesWithValidPhotos = [];
 
-          for (const place of placesWithPhotos) {
+          const fetchPhotos = placesWithPhotos.map(async (place) => {
             const photoUrl = `https://api.foursquare.com/v3/places/${place.fsq_id}/photos?limit=1`;
             const photoResponse = await fetch(photoUrl, {
               method: 'GET',
-              headers: {
-                'Authorization': API_KEY,
-              },
+              headers: { 'Authorization': API_KEY }
             });
             const photoData = await photoResponse.json();
             if (photoData && photoData.length > 0) {
               const photo = photoData[0];
               photos[place.fsq_id] = `${photo.prefix}600x600${photo.suffix}`;
-              placesWithValidPhotos.push(place);
             }
-          }
-
-          setPlaces(placesWithValidPhotos);
-          setPlacePhotos(photos);
-
-          const allPlacesUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=20`;
-          const allPlaceResponse = await fetch(allPlacesUrl, {
-            method: 'GET',
-            headers: {
-              'Authorization': API_KEY,
-            },
           });
-          const allPlaceData = await allPlaceResponse.json();
-          setAllPlaces(allPlaceData.results);
 
+          await Promise.all(fetchPhotos); // Wait for all photo requests
+
+          setPlaces(placesWithPhotos.filter((place) => photos[place.fsq_id]));
+          setPlacePhotos(photos);
+          setAllPlaces(allPlaceData.results);
+          
         } catch (error) {
           console.error('Erro ao fazer a requisição:', error);
         }
@@ -92,10 +84,8 @@ const HomeScreen = () => {
   const handleViewAll = () => {
     setPlaces(allPlaces);
   };
+
   const navigation = useNavigation();
-  
-  const BottomNavbar = () => {
-  const navigation = useNavigation();}
 
   return (
     <SafeAreaView style={styles.container}>
@@ -107,7 +97,6 @@ const HomeScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Primeira foto isolada no topo */}
         {places.length > 0 && placePhotos[places[0].fsq_id] && (
           <View style={styles.placeCard}>
             <Image source={{ uri: placePhotos[places[0].fsq_id] }} style={styles.placeImage} />
@@ -120,7 +109,6 @@ const HomeScreen = () => {
           </View>
         )}
 
-        {/* Seção "Restaurantes próximos" */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Restaurantes</Text>
           <TouchableOpacity onPress={handleViewAll}>
@@ -128,7 +116,6 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Fotos adicionais abaixo (sem nome e botão) */}
         <View style={styles.imageContainer}>
           {places.slice(1).map((place) => (
             <View key={place.fsq_id} style={styles.placeCard}>
@@ -136,10 +123,8 @@ const HomeScreen = () => {
                 <Image source={{ uri: placePhotos[place.fsq_id] }} style={styles.placeImage} />
               )}
 
-              {/* Nome do restaurante */}
               <Text style={styles.placeName}>{place.name}</Text>
 
-              {/* Localização */}
               {place.location && place.location.address ? (
                 <View style={styles.locationContainer}>
                   <Ionicons name="location-sharp" size={16} color="gray" />
@@ -149,12 +134,19 @@ const HomeScreen = () => {
             </View>
           ))}
         </View>
+        
         <LugaresParaConhecer />
-        <ListaSugestoesComAPI/>
-
+        <ListaSugestoesComAPI />
       </ScrollView>
 
-      <View style={styles.navbarBottom}>
+      <BottomNavbar navigation={navigation} />
+    </SafeAreaView>
+  );
+};
+
+const BottomNavbar = ({ navigation }) => {
+  return (
+    <View style={styles.navbarBottom}>
       <TouchableOpacity style={styles.navbarItem} onPress={() => navigation.navigate('Home')}>
         <Ionicons name="home" size={24} color="white" />
         <Text style={styles.navbarItemText}>Início</Text>
@@ -169,14 +161,12 @@ const HomeScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.navbarItem} 
-        onPress={() => navigation.replace('DicasLocais')}  // Navegação para a tela 'MapasDicas' substituindo a atual
+        onPress={() => navigation.replace('DicasLocais')}
       >
-        
         <Ionicons name="locate" size={24} color="white" />
         <Text style={styles.navbarItemText}>Dicas Locais</Text>
       </TouchableOpacity>
     </View>
-    </SafeAreaView>
   );
 };
 

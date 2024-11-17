@@ -35,8 +35,8 @@ const ListaSugestoesComAPI = () => {
                 try {
                     const { latitude, longitude } = location;
 
-                    // Categorias de eventos ajustadas: Música ao Vivo, Arte e Entretenimento, Teatros, Eventos
-                    const categories = '13000,15000,16000,18000';  // Música ao vivo, Arte, Teatros, Locais de eventos
+    
+                    const categories = '13000,15000,16000,18000'; 
                     const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=${categories}&sort=rating&limit=10`;
                     const eventResponse = await fetch(url, {
                         method: 'GET',
@@ -47,14 +47,14 @@ const ListaSugestoesComAPI = () => {
 
                     const data = await eventResponse.json();
 
-                    // Obtenha a data atual e a data de amanhã
+                    
                     const today = new Date();
                     const tomorrow = new Date(today);
                     tomorrow.setDate(today.getDate() + 1);
 
-                    // Filtre os eventos que vão ocorrer hoje ou amanhã
+
                     const eventData = data.results.filter(event => {
-                        const eventDate = new Date(event.date); // Ajuste isso conforme a estrutura de data que vem da API
+                        const eventDate = new Date(event.date); 
                         return (eventDate >= today && eventDate <= tomorrow);
                     }).map(event => ({
                         name: event.name,
@@ -121,8 +121,8 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 20,
         marginBottom: 15,
-        elevation: 5,  // Sombra para dar profundidade no Android
-        shadowColor: '#000', // Sombra para iOS
+        elevation: 5,  
+        shadowColor: '#000', 
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,

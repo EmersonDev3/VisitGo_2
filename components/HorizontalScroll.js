@@ -35,7 +35,7 @@ const LugaresParaConhecer = () => {
                 try {
                     const { latitude, longitude } = location;
 
-                    // Categorias: museus, teatros, pontos turísticos
+                    
                     const categories = '19014,10032,16000';
                     const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=${categories}&sort=rating&limit=10`;
                     const placeResponse = await fetch(url, {
@@ -47,7 +47,7 @@ const LugaresParaConhecer = () => {
 
                     const data = await placeResponse.json();
 
-                    // Filtrar lugares com fotos
+                
                     const placesWithPhotos = [];
                     for (const place of data.results) {
                         const photo = await fetchPlacePhoto(place.fsq_id, API_KEY);
@@ -57,7 +57,7 @@ const LugaresParaConhecer = () => {
                                 photo,
                             });
                         }
-                        if (placesWithPhotos.length === 5) break; // Garantir apenas 5 opções
+                        if (placesWithPhotos.length === 5) break; 
                     }
 
                     setPlaces(placesWithPhotos);
