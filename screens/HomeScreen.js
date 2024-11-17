@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Platform, StatusBar, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location'; // Importando o módulo de localização
+import LugaresParaConhecer from '../components/HorizontalScroll';
+import ListaSugestoesComAPI from '../components/ListaSugestoesComAPI';
 
 const HomeScreen = () => {
   const [places, setPlaces] = useState([]); // Lista de lugares
@@ -12,16 +14,14 @@ const HomeScreen = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        // Pedir permissão para acessar a localização
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           alert('Permissão para acessar a localização negada!');
           return;
         }
 
-        // Obter a localização do usuário
         const userLocation = await Location.getCurrentPositionAsync({});
-        setLocation(userLocation.coords); // Salvar a localização
+        setLocation(userLocation.coords);
       } catch (error) {
         console.error('Erro ao obter a localização:', error);
       }
@@ -37,8 +37,7 @@ const HomeScreen = () => {
       const fetchPlaces = async () => {
         try {
           const { latitude, longitude } = location;
-
-          // Aumentando o raio de busca para 5000 metros (5 km)
+          
           const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=4`;
           const placeResponse = await fetch(url, {
             method: 'GET',
@@ -49,7 +48,6 @@ const HomeScreen = () => {
           const placeData = await placeResponse.json();
           const placesWithPhotos = placeData.results;
 
-          // Busca fotos para os lugares
           const photos = {};
           const placesWithValidPhotos = [];
 
@@ -64,16 +62,14 @@ const HomeScreen = () => {
             const photoData = await photoResponse.json();
             if (photoData && photoData.length > 0) {
               const photo = photoData[0];
-              photos[place.fsq_id] = `${photo.prefix}600x600${photo.suffix}`; // Salva a foto do lugar
-              placesWithValidPhotos.push(place); // Adiciona o lugar apenas se tiver foto
+              photos[place.fsq_id] = `${photo.prefix}600x600${photo.suffix}`;
+              placesWithValidPhotos.push(place);
             }
           }
 
-          // Atualiza os lugares com fotos válidas
           setPlaces(placesWithValidPhotos);
-          setPlacePhotos(photos); // Atualiza as fotos
-          
-          // Busca todos os lugares para mostrar no "Ver tudo" com um raio maior
+          setPlacePhotos(photos);
+
           const allPlacesUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=20`;
           const allPlaceResponse = await fetch(allPlacesUrl, {
             method: 'GET',
@@ -82,7 +78,7 @@ const HomeScreen = () => {
             },
           });
           const allPlaceData = await allPlaceResponse.json();
-          setAllPlaces(allPlaceData.results); // Salva todos os lugares
+          setAllPlaces(allPlaceData.results);
 
         } catch (error) {
           console.error('Erro ao fazer a requisição:', error);
@@ -91,10 +87,9 @@ const HomeScreen = () => {
 
       fetchPlaces();
     }
-  }, [location]); // A dependência é a localização
+  }, [location]);
 
   const handleViewAll = () => {
-    // Ao clicar em "Ver tudo", mostramos todos os lugares
     setPlaces(allPlaces);
   };
 
@@ -123,7 +118,7 @@ const HomeScreen = () => {
 
         {/* Seção "Restaurantes próximos" */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Restaurantes próximos</Text>
+          <Text style={styles.sectionTitle}>Restaurantes</Text>
           <TouchableOpacity onPress={handleViewAll}>
             <Text style={styles.viewAllText}>Ver tudo</Text>
           </TouchableOpacity>
@@ -150,12 +145,9 @@ const HomeScreen = () => {
             </View>
           ))}
         </View>
+        <LugaresParaConhecer />
+        <ListaSugestoesComAPI/>
 
-        {[...Array(10)].map((_, index) => (
-          <Text key={index} style={styles.contentText}>
-            Conteúdo rolável número {index + 1}
-          </Text>
-        ))}
       </ScrollView>
 
       <View style={styles.navbarBottom}>
@@ -179,6 +171,7 @@ const HomeScreen = () => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -310,6 +303,62 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 5,
   },
+
+  horizontalScroll: {
+    marginVertical: 20,
+  },
+  placeCardHorizontal: {
+    width: 260,
+    marginRight: 20,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  placeImageHorizontal: {
+    width: '100%',
+    height: 180,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    resizeMode: 'cover',
+  },
+  placeInfoContainer: {
+    padding: 15,
+  },
+  placeNameHorizontal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#5D5D5D',
+    marginLeft: 5,
+  },
+  detailsButton: {
+    marginTop: 10,
+    backgroundColor: '#FF6F61',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  detailsButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
+
+//scroll
 
 export default HomeScreen;
