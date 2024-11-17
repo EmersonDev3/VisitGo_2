@@ -1,61 +1,78 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Platform, StatusBar, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Biblioteca de ícones
+import { Ionicons } from '@expo/vector-icons';
 
 const HomeScreen = () => {
-  const [placeData, setPlaceData] = useState(null);
-  const [placePhoto, setPlacePhoto] = useState(null);
+  const [places, setPlaces] = useState([]); // Lista de lugares
+  const [allPlaces, setAllPlaces] = useState([]); // Lista de todos os lugares
+  const [placePhotos, setPlacePhotos] = useState({}); // Fotos de cada lugar
 
   useEffect(() => {
-    // Substitua pela sua chave da API do Foursquare
     const API_KEY = 'fsq3xXo7ixWrN0ANMJiIYsSecFLzz7mEmkG+kRmkEMBj+Xk=';
-
-    // Exemplo de localização (pode ser dinâmica dependendo da localização do usuário)
     const latitude = '40.748817'; // Latitude de exemplo (Nova York)
     const longitude = '-73.985428'; // Longitude de exemplo (Nova York)
 
-    // Endpoint da Foursquare Places API
-    const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=10`;
-
-    // Requisição para buscar lugares
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': API_KEY,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        const randomPlace = data.results[Math.floor(Math.random() * data.results.length)];
-        setPlaceData(randomPlace);
-
-        const photoUrl = `https://api.foursquare.com/v3/places/${randomPlace.fsq_id}/photos?limit=1`;
-        return fetch(photoUrl, {
+    const fetchPlaces = async () => {
+      try {
+        // Busca inicial de lugares (limite 3 lugares)
+        const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=4`;
+        const placeResponse = await fetch(url, {
           method: 'GET',
           headers: {
             'Authorization': API_KEY,
           },
         });
-      })
-      .then((photoResponse) => photoResponse.json())
-      .then((photoData) => {
-        if (photoData && photoData.length > 0) {
-          const photo = photoData[0];
-          const photoUrl = `${photo.prefix}600x600${photo.suffix}`;
-          setPlacePhoto(photoUrl);
-        } else {
-          setPlacePhoto('https://via.placeholder.com/600x400?text=Imagem+indisponível');
+        const placeData = await placeResponse.json();
+        const placesWithPhotos = placeData.results;
+        
+        // Salva os 3 primeiros lugares
+        setPlaces(placesWithPhotos);
+
+        // Busca todos os lugares para mostrar no "Ver tudo"
+        const allPlacesUrl = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=2000&categories=13000&limit=20`;
+        const allPlaceResponse = await fetch(allPlacesUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': API_KEY,
+          },
+        });
+        const allPlaceData = await allPlaceResponse.json();
+        setAllPlaces(allPlaceData.results); // Salva todos os lugares
+
+        // Busca fotos para os lugares
+        const photos = {};
+        for (const place of placesWithPhotos) {
+          const photoUrl = `https://api.foursquare.com/v3/places/${place.fsq_id}/photos?limit=1`;
+          const photoResponse = await fetch(photoUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': API_KEY,
+            },
+          });
+          const photoData = await photoResponse.json();
+          if (photoData && photoData.length > 0) {
+            const photo = photoData[0];
+            photos[place.fsq_id] = `${photo.prefix}600x600${photo.suffix}`; // Salva a foto do lugar
+          } else {
+            photos[place.fsq_id] = 'https://via.placeholder.com/600x400?text=Imagem+indisponível';
+          }
         }
-      })
-      .catch((error) => {
+        setPlacePhotos(photos); // Atualiza as fotos
+      } catch (error) {
         console.error('Erro ao fazer a requisição:', error);
-        setPlacePhoto('https://via.placeholder.com/600x400?text=Imagem+indisponível');
-      });
+      }
+    };
+
+    fetchPlaces();
   }, []);
+
+  const handleViewAll = () => {
+    // Ao clicar em "Ver tudo", mostramos todos os lugares
+    setPlaces(allPlaces);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Navbar Superior */}
       <View style={styles.navbarTop}>
         <TouchableOpacity onPress={() => alert('VisitGo clicado!')}>
           <Text style={styles.navbarTextLeft}>VisitGo</Text>
@@ -63,34 +80,46 @@ const HomeScreen = () => {
         <Ionicons name="heart" size={30} color="red" style={styles.iconRight} />
       </View>
 
-      {/* Conteúdo rolável entre as barras */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Foto com nome do lugar */}
-        <View style={styles.imageContainer}>
-          {placePhoto ? (
-            <Image source={{ uri: placePhoto }} style={styles.placeImage} />
-          ) : (
-            <Text style={styles.contentText}>Carregando imagem do lugar...</Text>
-          )}
-
-          {placeData && (
+        {/* Primeira foto isolada no topo */}
+        {places.length > 0 && placePhotos[places[0].fsq_id] && (
+          <View style={styles.placeCard}>
+            <Image source={{ uri: placePhotos[places[0].fsq_id] }} style={styles.placeImage} />
             <View style={styles.overlayTextContainer}>
-              <Text style={styles.placeName}>{placeData.name}</Text>
+              <Text style={styles.placeName}>{places[0].name}</Text>
               <TouchableOpacity style={styles.button}>
                 <Text style={styles.buttonText}>Descubra agora</Text>
               </TouchableOpacity>
             </View>
-          )}
+          </View>
+        )}
+
+        {/* Seção "Restaurantes próximos" */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Restaurantes próximos</Text>
+          <TouchableOpacity onPress={handleViewAll}>
+            <Text style={styles.viewAllText}>Ver tudo</Text>
+          </TouchableOpacity>
         </View>
 
-        {[...Array(30)].map((_, index) => (
+        {/* Fotos adicionais abaixo (sem nome e botão) */}
+        <View style={styles.imageContainer}>
+          {places.slice(1).map((place) => (
+            <View key={place.fsq_id} style={styles.placeCard}>
+              {placePhotos[place.fsq_id] && (
+                <Image source={{ uri: placePhotos[place.fsq_id] }} style={styles.placeImage} />
+              )}
+            </View>
+          ))}
+        </View>
+
+        {[...Array(10)].map((_, index) => (
           <Text key={index} style={styles.contentText}>
             Conteúdo rolável número {index + 1}
           </Text>
         ))}
       </ScrollView>
 
-      {/* Navbar Inferior */}
       <View style={styles.navbarBottom}>
         <TouchableOpacity style={styles.navbarItem}>
           <Ionicons name="home" size={24} color="white" />
@@ -170,14 +199,14 @@ const styles = StyleSheet.create({
   contentText: {
     fontSize: 18,
     color: '#333',
-    marginBottom:20,
+    marginBottom: 20,
   },
   placeImage: {
     width: '100%',
     height: 250,
     borderRadius: 8,
   },
-  imageContainer: {
+  placeCard: {
     position: 'relative',
     marginBottom: 20,
   },
@@ -191,24 +220,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   placeName: {
-    color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
-    textShadowColor: 'black',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 10,
+    textShadowRadius: 5,
   },
   button: {
     marginTop: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,
-    backgroundColor: '#FF6347',
-    borderRadius: 30,
+    backgroundColor: '#FF6347', // Cor do botão
+    borderRadius: 25, // Bordas arredondadas
   },
   buttonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center', // Para centralizar o texto
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8, // Reduzimos a margem inferior para aproximar o conteúdo abaixo
+    marginTop: 4, // Ajuste para mover para cima
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#666', // Cor cinza
+  },
+  viewAllText: {
+    color: '#666',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  imageContainer: {
+    marginTop: 20,
   },
 });
 
