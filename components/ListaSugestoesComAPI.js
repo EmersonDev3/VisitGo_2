@@ -93,7 +93,7 @@ const ListaSugestoesComAPI = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Eventos e Shows em Teresina</Text>
+            <Text style={styles.title}>Eventos e Shows </Text>
             <ScrollView style={styles.scrollView}>
                 {events.length > 0 ? (
                     events.map((eventItem, index) => (
