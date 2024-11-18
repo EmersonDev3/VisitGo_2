@@ -357,6 +357,6 @@ const styles = StyleSheet.create({
   },
 });
 
-//scroll
+
 
 export default HomeScreen;
