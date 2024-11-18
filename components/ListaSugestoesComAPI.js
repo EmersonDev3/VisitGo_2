@@ -8,41 +8,9 @@ const ListaSugestoesComAPI = () => {
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setModalVisible] = useState(false); 
+    const [events, setEvents] = useState([]);
+    const API_KEY = 'fsq3xXo7ixWrN0ANMJiIYsSecFLzz7mEmkG+kRmkEMBj+Xk='; 
 
-    const simulatedEvents = [
-        {
-            name: "Show de MPB - João das Neves",
-            address: "Theatro 4 de Setembro, Centro",
-            date: "2024-11-20",
-            icon: "music-note",
-        },
-        {
-            name: "Exposição de Arte - Cores do Piauí",
-            address: "Palácio da Cultura, Praça Pedro II",
-            date: "2024-11-21",
-            icon: "brush",
-        },
-        {
-            name: "Festival de Cinema Independente",
-            address: "Cine Rex, Centro",
-            date: "2024-11-22",
-            icon: "movie",
-        },
-        {
-            name: "Feira Literária de Teresina",
-            address: "Parque da Cidadania",
-            date: "2024-11-23",
-            icon: "menu-book",
-        },
-        {
-            name: "Show de Rock - Banda Os Piauienses",
-            address: "Espaço Cultural Rosa dos Ventos",
-            date: "2024-11-24",
-            icon: "guitar",
-        },
-    ];
-
-    
     useEffect(() => {
         const fetchLocation = async () => {
             try {
@@ -64,15 +32,46 @@ const ListaSugestoesComAPI = () => {
         fetchLocation();
     }, []);
 
-    
     useEffect(() => {
-        const randomEvent = simulatedEvents[Math.floor(Math.random() * simulatedEvents.length)];
-        console.log('Evento aleatório selecionado:', randomEvent);
-        setEvent(randomEvent);
-        setLoading(false);
+        if (location) {
+            const fetchEvents = async () => {
+                try {
+                    const { latitude, longitude } = location;
+                    const url = `https://api.foursquare.com/v3/places/search?ll=${latitude},${longitude}&radius=5000&categories=13000&sort=rating&limit=10`;
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': API_KEY },
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const fetchedEvents = data.results.map((place) => ({
+                            name: place.name,
+                            address: place.location.address || 'Endereço não disponível',
+                            date: 'Data não informada', 
+                            icon: 'place', 
+                        }));
+
+                        setEvents(fetchedEvents);
+                        if (fetchedEvents.length > 0) {
+                            setEvent(fetchedEvents[Math.floor(Math.random() * fetchedEvents.length)]);
+                        }
+                    } else {
+                        console.error('Erro na API:', response.status);
+                        Alert.alert('Erro', 'Não foi possível carregar os eventos.');
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar eventos:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            fetchEvents();
+        }
     }, [location]);
 
-    
     useEffect(() => {
         if (event) {
             setModalVisible(true);  
@@ -96,47 +95,28 @@ const ListaSugestoesComAPI = () => {
         <View style={styles.container}>
             <Text style={styles.title}>Eventos e Shows em Teresina</Text>
             <ScrollView style={styles.scrollView}>
-                {simulatedEvents.slice(0, 3).map((eventItem, index) => (
-                    <TouchableOpacity key={index} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <Icon name={eventItem.icon} size={32} color="#000" style={styles.icon} />
-                            <Text style={styles.name}>{eventItem.name}</Text>
-                        </View>
-                        <View style={styles.cardDetails}>
-                            <Text style={styles.address}>
-                                <Icon name="place" size={20} color="#000" /> {eventItem.address}
-                            </Text>
-                            <Text style={styles.date}>
-                                <Icon name="calendar-today" size={20} color="#000" /> {eventItem.date}
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                ))}
-
-             
-                {event && (
-                    <TouchableOpacity style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <Icon name={event.icon} size={32} color="#000" style={styles.icon} />
-                            <Text style={styles.name}>{event.name}</Text>
-                        </View>
-                        <View style={styles.cardDetails}>
-                            <Text style={styles.address}>
-                                <Icon name="place" size={20} color="#000" /> {event.address}
-                            </Text>
-                            <Text style={styles.date}>
-                                <Icon name="calendar-today" size={20} color="#000" /> {event.date}
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                )}
-
-                {!event && (
+                {events.length > 0 ? (
+                    events.map((eventItem, index) => (
+                        <TouchableOpacity key={index} style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <Icon name={eventItem.icon} size={32} color="#000" style={styles.icon} />
+                                <Text style={styles.name}>{eventItem.name}</Text>
+                            </View>
+                            <View style={styles.cardDetails}>
+                                <Text style={styles.address}>
+                                    <Icon name="place" size={20} color="#000" /> {eventItem.address}
+                                </Text>
+                                <Text style={styles.date}>
+                                    <Icon name="calendar-today" size={20} color="#000" /> {eventItem.date}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))
+                ) : (
                     <Text style={styles.noEvents}>Nenhum evento encontrado.</Text>
                 )}
             </ScrollView>
 
-       
             <Modal
                 visible={isModalVisible}
                 animationType="fade"
@@ -147,7 +127,7 @@ const ListaSugestoesComAPI = () => {
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Novo Evento!</Text>
                         <Text style={styles.modalText}>{event.name}</Text>
-                        <Text style={styles.modalText}>{event.date}</Text>
+                        <Text style={styles.modalText}>{event.address}</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.modalButton}>
                             <Text style={styles.modalButtonText}>Fechar</Text>
                         </TouchableOpacity>
